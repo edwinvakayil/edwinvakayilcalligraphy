@@ -224,4 +224,10 @@ All are on Google Fonts and auto-injected when passed to the `font` prop.
 
 ## License
 
-MIT
+Copyright (c) 2025 Edwin Vakayil. All rights reserved.
+
+This package is proprietary software. You may install and use it for personal
+or internal business purposes, but you may not copy, modify, distribute, or
+create derivative works from it without explicit written permission from the author.
+
+See the [LICENSE](./LICENSE) file for full terms.

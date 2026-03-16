@@ -1,0 +1,44 @@
+Copyright (c) 2025 Edwin Vakayil. All rights reserved.
+
+PROPRIETARY SOFTWARE LICENSE
+
+This software and its source code, documentation, and all associated files
+(collectively, the "Software") are the exclusive intellectual property of
+Edwin Vakayil ("the Author").
+
+RESTRICTIONS — the following are strictly prohibited without prior written
+permission from the Author:
+
+  1. Copying, reproducing, or duplicating the Software in whole or in part.
+  2. Modifying, adapting, translating, or creating derivative works based
+     on the Software.
+  3. Distributing, sublicensing, selling, renting, leasing, or transferring
+     the Software to any third party.
+  4. Reverse engineering, decompiling, or disassembling the Software.
+  5. Removing or altering any proprietary notices, labels, or marks on the
+     Software.
+  6. Using the Software's name, branding, or design as the basis for a
+     competing product.
+
+PERMITTED USE
+
+  The Software may be installed and used solely for personal or internal
+  business purposes by individuals or organisations who have obtained the
+  Software through an authorised channel (e.g. npm install from the
+  official registry listing). No other rights are granted.
+
+NO WARRANTY
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+  LIABILITY ARISING FROM THE USE OF OR INABILITY TO USE THE SOFTWARE.
+
+ENFORCEMENT
+
+  Any unauthorised use, reproduction, or distribution of the Software may
+  result in civil and criminal penalties and will be prosecuted to the
+  maximum extent permitted by law.
+
+For licensing inquiries or permissions, contact the Author directly.

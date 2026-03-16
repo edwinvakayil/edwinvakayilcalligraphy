@@ -26,8 +26,9 @@
     "ui",
     "component"
   ],
-  "author": "",
-  "license": "MIT",
+  "author": "Edwin Vakayil",
+  "website": "https://edwinvakayil.com",
+  "license": "SEE LICENSE IN LICENSE",
   "peerDependencies": {
     "react": ">=17.0.0",
     "react-dom": ">=17.0.0"
