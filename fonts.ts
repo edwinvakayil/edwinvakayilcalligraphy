@@ -88,7 +88,7 @@ export function preloadFonts(families: string[]): void {
       injectFont(buildFontUrl(f));
     } else {
       console.warn(
-        `[react-type-scale] "${f}" is not in the bundled GOOGLE_FONTS list. ` +
+        `[@edwinvakayil/calligraphy] "${f}" is not in the bundled GOOGLE_FONTS list. ` +
           `Add it to the list or import it manually.`
       );
     }

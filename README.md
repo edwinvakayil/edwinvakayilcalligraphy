@@ -201,7 +201,7 @@ The `accentColor` prop only affects the `<em>` italic span. It has no effect whe
 To avoid FOUT (flash of unstyled text), pre-load fonts at the top of your app:
 
 ```tsx
-import { preloadFonts } from "react-type-scale";
+import { preloadFonts } from "@edwinvakayil/calligraphy";
 
 // In your _app.tsx / main.tsx / layout.tsx
 preloadFonts(["Bricolage Grotesque", "Instrument Serif", "DM Sans"]);
