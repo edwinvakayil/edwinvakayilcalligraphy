@@ -169,7 +169,7 @@ export const Typography: React.FC<TypographyProps> = ({
   truncate,
   maxLines,
   animation,
-  italic      = true,
+  italic      = false,
   accentColor = "#c8b89a",
   ...rest
 }) => {

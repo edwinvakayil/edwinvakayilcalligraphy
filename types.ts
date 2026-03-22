@@ -73,9 +73,9 @@ export interface TypographyProps extends HTMLAttributes<HTMLElement> {
 
   /**
    * Italic accent for Display / H1 heroes.
-   * When true (default) any <em> child renders in Instrument Serif italic
-   * with an accent color. Set to false to render everything in the heading
-   * font/weight — no serif, no italics.
+   * When true, any <em> child renders in Instrument Serif italic
+   * with an accent color. Defaults to false — everything renders
+   * in the heading font/weight with no serif or italics.
    */
   italic?: boolean;
 
