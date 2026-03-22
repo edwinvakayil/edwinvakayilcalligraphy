@@ -20,6 +20,7 @@ export type TextAlign = "left" | "center" | "right" | "justify";
  * Built-in hero text entrance animations.
  * Applied via CSS keyframes — GPU-composited, 60fps safe.
  *
+ * — Original —
  * rise       — smooth upward fade-in (universal default)
  * stagger    — each word rises in sequence
  * clip       — text unmasked left-to-right (editorial)
@@ -30,6 +31,18 @@ export type TextAlign = "left" | "center" | "right" | "justify";
  * swipe      — slides in from the right
  * typewriter — character-by-character reveal
  * bounce     — drops from above with a soft bounce
+ *
+ * — Modern —
+ * velvet     — words drift in with a soft skew (buttery & modern)
+ * curtain    — each word clips upward like a rising curtain
+ * morph      — squash-and-stretch spring (expressive & bold)
+ * ground     — words emerge from behind the baseline (editorial)
+ * cascade    — diagonal character waterfall (dynamic & layered)
+ * spotlight  — expands from compressed letterspace (cinematic)
+ * ink        — words fade in with a gentle scale (calm & precise)
+ * hinge      — words rotate in from their left edge (mechanical)
+ * stretch    — horizontal rubber-band expand (playful & punchy)
+ * peel       — bottom-to-top clip reveal per word (sharp)
  */
 export type HeroAnimation =
   | "rise"
@@ -41,7 +54,17 @@ export type HeroAnimation =
   | "flip"
   | "swipe"
   | "typewriter"
-  | "bounce";
+  | "bounce"
+  | "velvet"
+  | "curtain"
+  | "morph"
+  | "ground"
+  | "cascade"
+  | "spotlight"
+  | "ink"
+  | "hinge"
+  | "stretch"
+  | "peel";
 
 export interface TypographyProps extends HTMLAttributes<HTMLElement> {
   /** Typography scale variant */
@@ -94,3 +117,6 @@ export interface TypographyProps extends HTMLAttributes<HTMLElement> {
 
 export type VariantTagMap = Record<TypographyVariant, keyof JSX.IntrinsicElements>;
 export type VariantStyleMap = Record<TypographyVariant, CSSProperties>;
+
+// Re-exported for convenience — consumers can import TypographyTheme from the root
+export type { TypographyTheme } from "./Context";
