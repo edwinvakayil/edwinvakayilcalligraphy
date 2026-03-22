@@ -222,6 +222,82 @@ preloadFonts(["Bricolage Grotesque", "Instrument Serif", "DM Sans"]);
 
 All are on Google Fonts and auto-injected when passed to the `font` prop.
 
+## TypographyProvider
+ 
+Wrap your app (or a section of it) with `TypographyProvider` to set defaults once. Any prop passed directly to `<Typography>` still wins — the provider is just the fallback.
+ 
+```tsx
+import { TypographyProvider, Typography } from "react-type-scale";
+ 
+export default function App() {
+  return (
+    <TypographyProvider
+      theme={{
+        font:        "Bricolage Grotesque",
+        accentColor: "#6366f1",
+        italic:      true,
+        animation:   "rise",
+        color:       "#1a1a1a",
+      }}
+    >
+      {/* Inherits font, accentColor, italic, animation from theme */}
+      <Typography variant="Display">
+        Build with <em>intention</em>
+      </Typography>
+ 
+      {/* Overrides just the animation — everything else from theme */}
+      <Typography variant="H1" animation="clip">
+        Another hero heading
+      </Typography>
+ 
+      {/* Overrides font only */}
+      <Typography variant="Body" font="Lora">
+        Body copy in a different font.
+      </Typography>
+ 
+      {/* italic=false wins over theme's italic=true */}
+      <Typography variant="Display" italic={false}>
+        No serif accent here
+      </Typography>
+    </TypographyProvider>
+  );
+}
+```
+ 
+### Theme shape
+ 
+```ts
+interface TypographyTheme {
+  font?:        string          // Google Font name applied to all variants
+  accentColor?: string          // <em> accent color for Display / H1
+  italic?:      boolean         // italic accent on/off for Display / H1
+  animation?:   HeroAnimation   // entrance animation for Display / H1
+  color?:       string          // default text color for all variants
+}
+```
+ 
+### Priority order
+ 
+```
+Explicit prop  >  TypographyProvider theme  >  built-in default
+```
+ 
+### Nesting providers
+ 
+Providers can be nested. The nearest one wins:
+ 
+```tsx
+<TypographyProvider theme={{ font: "Bricolage Grotesque", color: "#111" }}>
+  <Typography variant="H1">Uses Bricolage Grotesque</Typography>
+ 
+  <TypographyProvider theme={{ font: "Playfair Display", accentColor: "#e11d48" }}>
+    <Typography variant="Display">
+      Uses Playfair Display with red accent
+    </Typography>
+  </TypographyProvider>
+</TypographyProvider>
+```
+
 ## License
 
 Copyright (c) 2025 Edwin Vakayil. All rights reserved.

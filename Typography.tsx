@@ -7,6 +7,7 @@ import {
   buildStaggerHTML,
   buildLettersHTML,
 } from "./animation";
+import { useTypographyTheme } from "./Context";
 
 // ─── Static maps ─────────────────────────────────────────────────────────────
 
@@ -108,10 +109,6 @@ const INSTRUMENT_SERIF_URL =
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/**
- * Serialise React children → raw HTML string.
- * Preserves <em>text</em> nodes for animation builders.
- */
 function childrenToHTML(children: React.ReactNode): string {
   return (
     Children.map(children, (child) => {
@@ -128,11 +125,6 @@ function childrenToHTML(children: React.ReactNode): string {
   );
 }
 
-/**
- * Re-map React children so that <em> elements get explicit inline styles.
- * This is used for the no-animation render path where we keep real React nodes.
- * Inline styles on the <em> itself beat any inherited font-family from the parent.
- */
 function renderChildrenWithEmStyles(
   children: React.ReactNode,
   italic: boolean,
@@ -140,17 +132,17 @@ function renderChildrenWithEmStyles(
   headingFont?: string
 ): React.ReactNode {
   const italicStyle: CSSProperties = {
-    fontFamily:  "'Instrument Serif', serif",
-    fontStyle:   "italic",
-    fontWeight:  400,
-    color:       accentColor,
+    fontFamily: "'Instrument Serif', serif",
+    fontStyle:  "italic",
+    fontWeight: 400,
+    color:      accentColor,
   };
 
   const noItalicStyle: CSSProperties = {
-    fontFamily:  headingFont ? `'${headingFont}', sans-serif` : "inherit",
-    fontStyle:   "normal",
-    fontWeight:  "inherit" as any,
-    color:       "inherit",
+    fontFamily: headingFont ? `'${headingFont}', sans-serif` : "inherit",
+    fontStyle:  "normal",
+    fontWeight: "inherit" as any,
+    color:      "inherit",
   };
 
   return Children.map(children, (child, i) => {
@@ -165,18 +157,13 @@ function renderChildrenWithEmStyles(
   });
 }
 
-/**
- * After dangerouslySetInnerHTML renders, walk the DOM and apply inline styles
- * to every <em> and <em> > span so the font switch is guaranteed.
- */
 function applyEmStylesDOM(
   container: HTMLElement,
   italic: boolean,
   accentColor: string,
   headingFont?: string
 ): void {
-  // Select both <em> and any animated letter spans nested inside <em>
-  container.querySelectorAll<HTMLElement>("em").forEach((el) => {
+  const applyTo = (el: HTMLElement) => {
     if (italic) {
       el.style.fontFamily = "'Instrument Serif', serif";
       el.style.fontStyle  = "italic";
@@ -188,30 +175,22 @@ function applyEmStylesDOM(
       el.style.fontWeight = "inherit";
       el.style.color      = "inherit";
     }
-  });
+  };
 
-  // Also style the animated letter spans inside <em> (used by "letters" animation)
-  container.querySelectorAll<HTMLElement>("em > span").forEach((el) => {
-    if (italic) {
-      el.style.fontFamily = "'Instrument Serif', serif";
-      el.style.fontStyle  = "italic";
-      el.style.fontWeight = "400";
-      el.style.color      = accentColor;
-    } else {
-      el.style.fontFamily = headingFont ? `'${headingFont}', sans-serif` : "inherit";
-      el.style.fontStyle  = "normal";
-      el.style.fontWeight = "inherit";
-      el.style.color      = "inherit";
-    }
-  });
+  container.querySelectorAll<HTMLElement>("em").forEach(applyTo);
+  container.querySelectorAll<HTMLElement>("em > span").forEach(applyTo);
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export const Typography: React.FC<TypographyProps> = ({
   variant     = "Body",
-  font,
-  color,
+  // Explicit undefined = "not set by caller" → fall through to context
+  font:        fontProp,
+  color:       colorProp,
+  animation:   animationProp,
+  italic:      italicProp,
+  accentColor: accentColorProp,
   align,
   className,
   style,
@@ -219,16 +198,23 @@ export const Typography: React.FC<TypographyProps> = ({
   as,
   truncate,
   maxLines,
-  animation,
-  italic      = false,
-  accentColor = "#c8b89a",
   ...rest
 }) => {
+  const theme  = useTypographyTheme();
   const isHero = variant === "Display" || variant === "H1";
   const ref    = useRef<HTMLElement>(null);
 
-  // Always inject Instrument Serif for hero variants so it's pre-loaded
-  // and ready the moment italic is toggled on — no flash of wrong font.
+  // Prop wins if explicitly provided; otherwise fall back to theme value.
+  // We use `?? ` (nullish coalescing) so that false / 0 / "" from props still win.
+  const font        = fontProp        ?? (theme.font        || undefined);
+  const color       = colorProp       ?? (theme.color       || undefined);
+  const animation   = isHero
+    ? (animationProp  ?? theme.animation  ?? undefined)
+    : undefined;
+  const italic      = italicProp      ?? theme.italic;
+  const accentColor = accentColorProp ?? theme.accentColor;
+
+  // Always pre-load Instrument Serif for hero elements
   if (isHero) {
     injectFont(INSTRUMENT_SERIF_URL);
   }
@@ -238,13 +224,12 @@ export const Typography: React.FC<TypographyProps> = ({
     injectFont(buildFontUrl(font));
   }
 
-  // Inject animation keyframes (once, global)
+  // Inject animation keyframes once
   if (animation && isHero) {
     injectAnimationStyles();
   }
 
-  // For animation paths (dangerouslySetInnerHTML), walk the DOM after render
-  // and stamp inline styles onto every <em> — guaranteed to beat inheritance.
+  // Re-stamp em styles after DOM updates (animation / dangerouslySetInnerHTML path)
   useEffect(() => {
     if (!isHero || !animation || !ref.current) return;
     applyEmStylesDOM(ref.current, italic, accentColor, font);
@@ -252,7 +237,7 @@ export const Typography: React.FC<TypographyProps> = ({
 
   const Tag = (as ?? variantTagMap[variant]) as React.ElementType;
 
-  // ── Compute animation class + inner HTML ──────────────────────────────────
+  // ── Animation path ────────────────────────────────────────────────────────
 
   let animClass = "";
   let heroHTML: string | null = null;
@@ -270,7 +255,7 @@ export const Typography: React.FC<TypographyProps> = ({
     }
   }
 
-  // ── Computed container styles ─────────────────────────────────────────────
+  // ── Computed styles ───────────────────────────────────────────────────────
 
   const computedStyle: CSSProperties = {
     ...variantStyleMap[variant],
@@ -308,7 +293,7 @@ export const Typography: React.FC<TypographyProps> = ({
     );
   }
 
-  // ── Render: standard path (real React children with em styles) ────────────
+  // ── Render: standard path (real React children) ───────────────────────────
 
   const processedChildren = isHero
     ? renderChildrenWithEmStyles(children, italic, accentColor, font)
