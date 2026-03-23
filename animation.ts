@@ -453,3 +453,87 @@ export function buildSplitHTML(animation: HeroAnimation, html: string): string {
 // Legacy exports — backwards compat
 export const buildStaggerHTML = (html: string) => buildSplitHTML("stagger", html);
 export const buildLettersHTML = (html: string) => buildSplitHTML("letters", html);
+
+// ─── Custom motion builder ────────────────────────────────────────────────────
+
+/**
+ * Injects a one-off @keyframes rule with a generated name and returns that name.
+ * Deduped by a hash of the keyframe body so the same keyframe is only injected once.
+ */
+function injectCustomKeyframes(keyframeBody: string): string {
+  const hash = keyframeBody
+    .split("")
+    .reduce((acc, ch) => (Math.imul(31, acc) + ch.charCodeAt(0)) | 0, 0)
+    .toString(36)
+    .replace("-", "n");
+  const name = `rts-custom-${hash}`;
+  if (typeof document === "undefined") return name;
+  if (document.getElementById(name)) return name;
+  const style = document.createElement("style");
+  style.id = name;
+  style.textContent = `@keyframes ${name} { ${keyframeBody} }`;
+  document.head.appendChild(style);
+  return name;
+}
+
+/**
+ * Builds the innerHTML for a custom motionConfig.
+ * - split "none"  → returns the raw html unchanged; caller applies class to element
+ * - split "words" → wraps each word in a span with the animation + stagger delay
+ * - split "chars" → wraps each character in a span with the animation + stagger delay
+ *
+ * Returns { html, animationValue } where animationValue is the full CSS animation
+ * shorthand to set on each span (or on the element itself when split is "none").
+ */
+export function buildCustomHTML(
+  html:          string,
+  keyframeName:  string,
+  duration:      string,
+  easing:        string,
+  delay:         string,
+  fillMode:      string,
+  split:         "none" | "words" | "chars",
+  staggerDelay:  number
+): { html: string; baseAnimation: string } {
+  const baseAnimation = `${keyframeName} ${duration} ${easing} ${delay} ${fillMode}`;
+
+  if (split === "none") {
+    return { html, baseAnimation };
+  }
+
+  if (split === "words") {
+    const tokens = html.match(/(<em>[\s\S]*?<\/em>|[^\s]+)/g) ?? [];
+    const result = tokens.map((tok, i) => {
+      const totalDelay = i === 0
+        ? delay
+        : `${(parseFloat(delay) + i * staggerDelay).toFixed(3)}s`;
+      const anim = `${keyframeName} ${duration} ${easing} ${totalDelay} ${fillMode}`;
+      if (tok.startsWith("<em>")) {
+        return `<em><span style="display:inline-block;animation:${anim}">${tok.slice(4, -5)}</span></em>`;
+      }
+      return `<span style="display:inline-block;animation:${anim}">${tok}</span>`;
+    });
+    return { html: result.join(" "), baseAnimation };
+  }
+
+  // chars
+  const result: string[] = [];
+  let inEm = false, charIndex = 0, i = 0;
+  while (i < html.length) {
+    if (html.startsWith("<em>", i))  { inEm = true;  i += 4; continue; }
+    if (html.startsWith("</em>", i)) { inEm = false; i += 5; continue; }
+    const ch = html[i];
+    if (ch === " ") { result.push(" "); i++; continue; }
+    const totalDelay = charIndex === 0
+      ? delay
+      : `${(parseFloat(delay) + charIndex * staggerDelay).toFixed(3)}s`;
+    const anim = `${keyframeName} ${duration} ${easing} ${totalDelay} ${fillMode}`;
+    const span = `<span style="display:inline-block;animation:${anim}">${ch}</span>`;
+    result.push(inEm ? `<em>${span}</em>` : span);
+    charIndex++;
+    i++;
+  }
+  return { html: result.join(""), baseAnimation };
+}
+
+export { injectCustomKeyframes };

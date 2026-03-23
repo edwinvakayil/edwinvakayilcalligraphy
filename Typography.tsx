@@ -13,10 +13,13 @@ import {
   getAnimationClass,
   isSplitAnimation,
   buildSplitHTML,
+  applyThreadOffsets,
+  injectCustomKeyframes,
+  buildCustomHTML,
 } from "./animation";
 import { useTypographyTheme } from "./Context";
 
-// ─── Static maps ─────────────────────────────────────────────────────────────
+// ─── Variant → HTML tag map ───────────────────────────────────────────────────
 
 const variantTagMap: VariantTagMap = {
   Display:    "h1",
@@ -32,6 +35,8 @@ const variantTagMap: VariantTagMap = {
   Label:      "label",
   Caption:    "span",
 };
+
+// ─── Variant → base CSS styles ────────────────────────────────────────────────
 
 const variantStyleMap: VariantStyleMap = {
   Display: {
@@ -109,13 +114,19 @@ const variantStyleMap: VariantStyleMap = {
   },
 };
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
+// Always pre-loaded for hero variants so toggling italic is instant with no FOUC
 const INSTRUMENT_SERIF_URL =
   "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Serialise React children to a raw HTML string.
+ * Handles plain strings and <em>text</em> elements.
+ * Used to feed text into the animation split-builders.
+ */
 function childrenToHTML(children: React.ReactNode): string {
   return (
     Children.map(children, (child) => {
@@ -124,7 +135,9 @@ function childrenToHTML(children: React.ReactNode): string {
       }
       if (isValidElement(child) && child.type === "em") {
         const inner =
-          typeof child.props.children === "string" ? child.props.children : "";
+          typeof child.props.children === "string"
+            ? child.props.children
+            : "";
         return `<em>${inner}</em>`;
       }
       return "";
@@ -132,9 +145,14 @@ function childrenToHTML(children: React.ReactNode): string {
   );
 }
 
+/**
+ * Standard (no-animation) render path.
+ * Clones <em> children with explicit inline styles so the font switch is
+ * guaranteed — parent fontFamily cannot override a child's own inline style.
+ */
 function renderChildrenWithEmStyles(
-  children: React.ReactNode,
-  italic: boolean,
+  children:    React.ReactNode,
+  italic:      boolean,
   accentColor: string,
   headingFont?: string
 ): React.ReactNode {
@@ -163,9 +181,14 @@ function renderChildrenWithEmStyles(
   });
 }
 
+/**
+ * Animation (dangerouslySetInnerHTML) render path.
+ * After the DOM is written we walk it and stamp inline styles onto every
+ * <em> and <em > span — guaranteed to beat any inherited fontFamily.
+ */
 function applyEmStylesDOM(
-  container: HTMLElement,
-  italic: boolean,
+  container:   HTMLElement,
+  italic:      boolean,
   accentColor: string,
   headingFont?: string
 ): void {
@@ -176,7 +199,9 @@ function applyEmStylesDOM(
       el.style.fontWeight = "400";
       el.style.color      = accentColor;
     } else {
-      el.style.fontFamily = headingFont ? `'${headingFont}', sans-serif` : "inherit";
+      el.style.fontFamily = headingFont
+        ? `'${headingFont}', sans-serif`
+        : "inherit";
       el.style.fontStyle  = "normal";
       el.style.fontWeight = "inherit";
       el.style.color      = "inherit";
@@ -186,13 +211,15 @@ function applyEmStylesDOM(
   container.querySelectorAll<HTMLElement>("em > span").forEach(apply);
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export const Typography: React.FC<TypographyProps> = ({
   variant      = "Body",
   font:         fontProp,
   color:        colorProp,
   animation:    animationProp,
+  motionConfig,
+  motionRef,
   italic:       italicProp,
   accentColor:  accentColorProp,
   align,
@@ -208,60 +235,107 @@ export const Typography: React.FC<TypographyProps> = ({
   const isHero = variant === "Display" || variant === "H1";
   const ref    = useRef<HTMLElement>(null);
 
-  // Prop wins; fall back to theme; fall back to built-in default
+  // Prop wins → theme → built-in default
   const font        = fontProp        ?? (theme.font        || undefined);
   const color       = colorProp       ?? (theme.color       || undefined);
-  const animation   = isHero ? (animationProp ?? theme.animation ?? undefined) : undefined;
-  const italic      = italicProp      ?? theme.italic;
-  const accentColor = accentColorProp ?? theme.accentColor;
+  const animation   = isHero
+    ? (animationProp ?? theme.animation ?? undefined)
+    : undefined;
+  const italic      = italicProp      ?? theme.italic      ?? false;
+  const accentColor = accentColorProp ?? theme.accentColor ?? "#c8b89a";
 
-  // ── useInsertionEffect: inject <link> and <style> tags ────────────────────
-  //
-  // WHY useInsertionEffect instead of plain render-phase calls:
-  //
-  // 1. Server safety — useInsertionEffect (like all effects) is never called
-  //    on the server, so document.createElement / document.head never run
-  //    during SSR. The isBrowser guard in ssr.ts is a belt-and-suspenders
-  //    backup, but the effect boundary is the real guarantee.
-  //
-  // 2. Correctness — React 18 concurrent mode can call the render function
-  //    multiple times before committing. Doing DOM work in render can fire
-  //    those side-effects redundantly or out of order. useInsertionEffect
-  //    fires synchronously before the browser paints, once per commit.
-  //
-  // 3. No FOUC — because it fires before paint (earlier than useLayoutEffect),
-  //    the <style> tag is in the DOM before any text is visible, so there is
-  //    no flash of unstyled / wrong-font text.
+  // ── Font & style injection ─────────────────────────────────────────────────
 
   useInsertionEffect(() => {
-    // Instrument Serif — always pre-load for hero so toggling italic is instant
     if (isHero) {
       injectFont(INSTRUMENT_SERIF_URL);
     }
-    // Heading Google Font
     if (font && GOOGLE_FONTS.includes(font)) {
       injectFont(buildFontUrl(font));
     }
-    // Animation keyframe stylesheet
     if (animation && isHero) {
       injectAnimationStyles();
     }
-  }, [isHero, font, animation]);
+    // Inject custom keyframes as soon as the prop arrives
+    if (motionConfig?.keyframes) {
+      injectCustomKeyframes(motionConfig.keyframes);
+    }
+  }, [isHero, font, animation, motionConfig?.keyframes]);
 
-  // ── useEffect: re-stamp inline styles on <em> after DOM updates ───────────
+  // ── Re-stamp <em> inline styles after every relevant change ───────────────
+
   useEffect(() => {
     if (!isHero || !animation || !ref.current) return;
     applyEmStylesDOM(ref.current, italic, accentColor, font);
+    if (animation === "thread") applyThreadOffsets(ref.current);
   }, [italic, accentColor, font, animation, isHero]);
+
+  // ── motionRef callback — fires after mount and on every re-render ──────────
+  // motionRef wins over animation and motionConfig — the user drives the DOM.
+
+  useEffect(() => {
+    if (!motionRef) return;
+    motionRef(ref.current);
+  });
+
+  // ── Strip lingering CSS properties after animation ends ───────────────────
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !animation) return;
+
+    const cleanup = () => {
+      if (animation === "maskSweep") {
+        el.style.setProperty("mask-image", "none");
+        el.style.setProperty("-webkit-mask-image", "none");
+      }
+      if (animation === "gradSweep") {
+        el.style.animation = "none";
+      }
+    };
+
+    el.addEventListener("animationend", cleanup, { once: true });
+    return () => el.removeEventListener("animationend", cleanup);
+  }, [animation]);
 
   const Tag = (as ?? variantTagMap[variant]) as React.ElementType;
 
-  // ── Animation path: build inner HTML ─────────────────────────────────────
+  // ── Build inner HTML — priority: motionRef > motionConfig > animation ──────
 
   let animClass = "";
-  let heroHTML: string | null = null;
+  let heroHTML:       string | null = null;
+  let customAnimStyle: string | undefined;
 
-  if (animation && isHero) {
+  // motionRef — no HTML manipulation needed, user handles everything via ref
+  if (motionRef) {
+    // fall through to standard render; ref is forwarded via useEffect above
+  }
+  // motionConfig — works on any variant, not just heroes
+  else if (motionConfig?.keyframes) {
+    const keyframeName  = injectCustomKeyframes(motionConfig.keyframes);
+    const duration      = motionConfig.duration     ?? "0.8s";
+    const easing        = motionConfig.easing       ?? "cubic-bezier(0.16,1,0.3,1)";
+    const delay         = motionConfig.delay        ?? "0s";
+    const fillMode      = motionConfig.fillMode     ?? "both";
+    const split         = motionConfig.split        ?? "none";
+    const staggerDelay  = motionConfig.staggerDelay
+      ?? (split === "chars" ? 0.04 : 0.07);
+
+    const rawHTML = childrenToHTML(children);
+    const { html, baseAnimation } = buildCustomHTML(
+      rawHTML, keyframeName, duration, easing, delay, fillMode, split, staggerDelay
+    );
+
+    if (split === "none") {
+      // Apply animation directly on the element via inline style
+      customAnimStyle = baseAnimation;
+      heroHTML = rawHTML;
+    } else {
+      heroHTML = html;
+    }
+  }
+  // Built-in animation preset
+  else if (animation && isHero) {
     const rawHTML = childrenToHTML(children);
     if (isSplitAnimation(animation)) {
       heroHTML = buildSplitHTML(animation, rawHTML);
@@ -279,7 +353,11 @@ export const Typography: React.FC<TypographyProps> = ({
     ...(color ? { color }                               : {}),
     ...(align ? { textAlign: align }                   : {}),
     ...(truncate
-      ? { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }
+      ? {
+          overflow:     "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace:   "nowrap",
+        }
       : {}),
     ...(maxLines && !truncate
       ? {
@@ -289,12 +367,18 @@ export const Typography: React.FC<TypographyProps> = ({
           overflow:        "hidden",
         }
       : {}),
+    // motionConfig split="none" — animation applied directly on the element
+    ...(customAnimStyle ? { animation: customAnimStyle } : {}),
     margin:  0,
     padding: 0,
     ...style,
   };
 
-  // ── Render: animation path (dangerouslySetInnerHTML) ──────────────────────
+  // ── Render: animation path ────────────────────────────────────────────────
+  //
+  // key={animation} forces React to unmount + remount the element when the
+  // animation value changes, guaranteeing the CSS keyframe fires from frame 0
+  // on every switch.
 
   if (heroHTML !== null) {
     return (
@@ -309,7 +393,7 @@ export const Typography: React.FC<TypographyProps> = ({
     );
   }
 
-  // ── Render: standard path ────────────────────────────────────────────────
+  // ── Render: standard path ─────────────────────────────────────────────────
 
   const processedChildren = isHero
     ? renderChildrenWithEmStyles(children, italic, accentColor, font)
