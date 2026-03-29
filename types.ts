@@ -281,5 +281,5 @@ export type VariantTagMap = Record<TypographyVariant, keyof JSX.IntrinsicElement
 export type VariantStyleMap = Record<TypographyVariant, CSSProperties>;
 
 // Re-exported here so consumers can import from a single types path:
-// import type { TypographyTheme } from "Inkvelle/types"
+// import type { TypographyTheme } from "inkvelle/types"
 export type { TypographyTheme } from "./Context";
