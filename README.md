@@ -1,4 +1,4 @@
-# @edwinvakayil/calligraphy
+# Inkvelle
 
 A lightweight **React + TypeScript** typography component with automatic **Google Fonts** support, **30+ hero entrance animations**, **custom motion config**, and an **italic accent toggle**.
 
@@ -7,9 +7,9 @@ A lightweight **React + TypeScript** typography component with automatic **Googl
 ## Install
 
 ```bash
-npm install @edwinvakayil/calligraphy
+npm install Inkvelle
 # or
-yarn add @edwinvakayil/calligraphy
+yarn add Inkvelle
 ```
 
 ---
@@ -17,7 +17,7 @@ yarn add @edwinvakayil/calligraphy
 ## Quick Start
 
 ```tsx
-import { Typography } from "@edwinvakayil/calligraphy";
+import { Typography } from "Inkvelle";
 
 export default function App() {
   return (
@@ -164,7 +164,7 @@ All animations use only `transform`, `opacity`, and `filter` — GPU-composited,
 When the built-in presets don't fit, write your own keyframe. Works on **any variant**, not just heroes.
 
 ```tsx
-import { Typography, type MotionConfig } from "@edwinvakayil/calligraphy";
+import { Typography, type MotionConfig } from "Inkvelle";
 ```
 
 ### Whole-element animation
@@ -308,7 +308,7 @@ When `italic={true}`, any `<em>` tag inside a `Display` or `H1` hero renders in 
 Wrap your app (or a section of it) with `TypographyProvider` to set defaults once. Any prop passed directly to `<Typography>` still wins — the provider is just the fallback.
 
 ```tsx
-import { TypographyProvider, Typography } from "@edwinvakayil/calligraphy";
+import { TypographyProvider, Typography } from "Inkvelle";
 
 export default function App() {
   return (
@@ -425,7 +425,7 @@ The nearest provider wins:
 To avoid FOUT (flash of unstyled text), pre-load fonts at the top of your app:
 
 ```tsx
-import { preloadFonts } from "@edwinvakayil/calligraphy";
+import { preloadFonts } from "Inkvelle";
 
 // In your _app.tsx / main.tsx / layout.tsx
 preloadFonts(["Bricolage Grotesque", "Instrument Serif", "DM Sans"]);
@@ -448,13 +448,13 @@ preloadFonts(["Bricolage Grotesque", "Instrument Serif", "DM Sans"]);
 
 ## SSR & Next.js
 
-`@edwinvakayil/calligraphy` is fully SSR-safe. All DOM work (`<link>` and `<style>` injection) happens inside `useInsertionEffect`, which React never calls on the server. The text renders in the server HTML; animations play after hydration.
+`Inkvelle` is fully SSR-safe. All DOM work (`<link>` and `<style>` injection) happens inside `useInsertionEffect`, which React never calls on the server. The text renders in the server HTML; animations play after hydration.
 
 ### Next.js App Router
 
 ```tsx
 // app/layout.tsx
-import { TypographyProvider } from "@edwinvakayil/calligraphy";
+import { TypographyProvider } from "Inkvelle";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -471,7 +471,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ```tsx
 // app/page.tsx — Server Component
-import { Typography } from "@edwinvakayil/calligraphy";
+import { Typography } from "Inkvelle";
 
 export default function Page() {
   return (
@@ -486,7 +486,7 @@ export default function Page() {
 
 ```tsx
 // pages/_app.tsx
-import { TypographyProvider } from "@edwinvakayil/calligraphy";
+import { TypographyProvider } from "Inkvelle";
 import type { AppProps } from "next/app";
 
 export default function App({ Component, pageProps }: AppProps) {
