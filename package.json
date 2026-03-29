@@ -1,6 +1,6 @@
 {
   "name": "Inkvelle",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "A lightweight React + TypeScript typography component with Google Fonts support. Scale from Display to Caption with a single prop.",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
